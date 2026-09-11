@@ -1,0 +1,7 @@
+pyproject.toml
+scratkat/__init__.py
+scratkat.egg-info/PKG-INFO
+scratkat.egg-info/SOURCES.txt
+scratkat.egg-info/dependency_links.txt
+scratkat.egg-info/requires.txt
+scratkat.egg-info/top_level.txt
