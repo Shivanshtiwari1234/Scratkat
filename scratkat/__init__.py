@@ -1,1 +1,3 @@
-print("Test")
+from .core import init
+
+__all__ = ["init"]
