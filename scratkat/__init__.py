@@ -1,4 +1,11 @@
-from .core import Project, Sprite, Costume, Script, Sound, init
+from .core import (
+    Project,
+    Sprite,
+    Costume,
+    Script,
+    Sound,
+    init,
+)
 
 __all__ = [
     "Project",
