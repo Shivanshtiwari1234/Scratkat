@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: scratkat
-Version: 0.1.0
-Summary: A Scratch-like Python library for creating simple interactive projects
-License: MIT
-Requires-Python: >=3.10
-Description-Content-Type: text/markdown
-Requires-Dist: qtpy>=2.4.0
-Requires-Dist: PySide6>=6.7.0
