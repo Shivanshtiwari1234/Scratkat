@@ -2,10 +2,10 @@ from .core import (
     Project,
     Sprite,
     Costume,
-    Script,
     Sound,
     init,
 )
+from .scripts import Script
 
 __all__ = [
     "Project",

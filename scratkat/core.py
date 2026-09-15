@@ -10,6 +10,7 @@ from qtpy.QtWidgets import (
     QMainWindow,
 )
 
+from .scripts import Script
 from .stage import Stage
 
 
@@ -29,16 +30,6 @@ class Costume:
             self.path = image_path.resolve()
         else:
             self.path = None
-
-
-class Script:
-    """A sprite script.
-
-    Scripts are currently stored only and are not executed.
-    """
-
-    def __init__(self, name="Script 1"):
-        self.name = name
 
 
 class Sound:
@@ -73,15 +64,27 @@ class Sprite:
         self._label = None
         self._costume_width = 0
         self._costume_height = 0
+        self._base_dir = base_dir
+        self._project = None
 
     def attach_script(self, name="Script"):
-        """Add a script to this sprite.
-
-        Script execution is not implemented yet.
-        """
+        """Add a :class:`~scratkat.scripts.Script` to this sprite."""
         script = Script(name)
         self.scripts.append(script)
         return script
+
+    def set_costume(self, image=None, name="Costume 1"):
+        """Replace this sprite's costume and refresh it on its project.
+
+        ``image`` may be an absolute path or a path relative to the project
+        file that created the sprite.
+        """
+        self.costume = Costume(image=image, name=name, base_dir=self._base_dir)
+        self._costume_width = 0
+        self._costume_height = 0
+
+        if self._project is not None:
+            self._project._set_sprite_costume(self)
 
     def wire_sound(self, name="Sound"):
         """Add a sound to this sprite."""
@@ -121,6 +124,7 @@ class Project:
             costume=costume,
             base_dir=self.base_dir,
         )
+        sprite._project = self
 
         self.sprites.append(sprite)
 
@@ -137,45 +141,53 @@ class Project:
 
         sprite._label = label
 
-        if sprite.costume.path is not None:
-            if not sprite.costume.path.exists():
-                raise FileNotFoundError(
-                    f"Costume image not found: "
-                    f"{sprite.costume.path}"
-                )
+        self._set_sprite_costume(sprite)
 
-            pixmap = QPixmap(str(sprite.costume.path))
+        self._update_sprite(sprite)
 
-            if pixmap.isNull():
-                raise ValueError(
-                    f"Could not load costume image: "
-                    f"{sprite.costume.path}"
-                )
+    def _set_sprite_costume(self, sprite):
+        """Load a sprite costume into its existing widget, if it has one."""
+        label = sprite._label
+        if label is None:
+            return
 
-            label.setPixmap(pixmap)
-            label.setScaledContents(True)
+        label.clear()
+        sprite._costume_width = 0
+        sprite._costume_height = 0
 
-            sprite._costume_width = pixmap.width()
-            sprite._costume_height = pixmap.height()
+        if sprite.costume.path is None:
+            self._update_sprite(sprite)
+            return
 
+        if not sprite.costume.path.is_file():
+            raise FileNotFoundError(
+                f"Costume image not found: {sprite.costume.path}"
+            )
+
+        pixmap = QPixmap(str(sprite.costume.path))
+        if pixmap.isNull():
+            raise ValueError(
+                f"Could not load costume image: {sprite.costume.path}"
+            )
+
+        label.setPixmap(pixmap)
+        # The label is resized from the costume's logical dimensions on every
+        # stage resize, so this works consistently across Qt backends and DPI.
+        label.setScaledContents(True)
+        sprite._costume_width = pixmap.width()
+        sprite._costume_height = pixmap.height()
         self._update_sprite(sprite)
 
     def _update_sprite(self, sprite):
         """Apply the sprite configuration to its widget."""
-
         label = sprite._label
-
         if label is None:
             return
-
         cfg = sprite.cfg
-
         if not cfg["visible"]:
             label.hide()
             return
-
         label.show()
-
         if (
             sprite._costume_width <= 0
             or sprite._costume_height <= 0
@@ -183,38 +195,23 @@ class Project:
             return
 
         stage_scale = self.canvas.get_scale()
-
         size_scale = cfg["size"] / 100.0
-
         width = max(
             1,
-            int(
-                sprite._costume_width
-                * size_scale
-                * stage_scale
-            ),
+            round(sprite._costume_width * size_scale * stage_scale),
         )
-
         height = max(
             1,
-            int(
-                sprite._costume_height
-                * size_scale
-                * stage_scale
-            ),
+            round(sprite._costume_height * size_scale * stage_scale),
         )
-
         label.resize(width, height)
 
         center_x, center_y = self.canvas.logical_to_screen(
-            cfg["x"],
-            cfg["y"],
-            stage_scale,
+            cfg["x"], cfg["y"], stage_scale
         )
-
         label.move(
-            int(center_x - width / 2),
-            int(center_y - height / 2),
+            round(center_x - width / 2),
+            round(center_y - height / 2),
         )
 
     def update_sprites(self):
