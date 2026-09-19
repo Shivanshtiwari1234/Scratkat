@@ -67,9 +67,15 @@ class Sprite:
         self._base_dir = base_dir
         self._project = None
 
-    def attach_script(self, name="Script"):
+    def attach_script(self, name="Script", trigger=None):
         """Add a :class:`~scratkat.scripts.Script` to this sprite."""
-        script = Script(name)
+        # Passing an event block as the first argument keeps script setup terse:
+        # ``sprite.attach_script(when_run()).then(move(10))``.
+        if trigger is None and hasattr(name, "matches"):
+            trigger = name
+            name = type(trigger).__name__
+        script = Script(name, trigger=trigger)
+        script.sprite = self
         self.scripts.append(script)
         return script
 
@@ -224,10 +230,21 @@ class Project:
         """Launch the project."""
 
         self.window.resize(width, height)
+        self.trigger("run")
         self.update_sprites()
         self.window.show()
 
         return self.app.exec()
+
+    def trigger(self, event):
+        """Run every script listening for *event*.
+
+        This is public so future event sources can dispatch their own events.
+        """
+        for sprite in self.sprites:
+            for script in sprite.scripts:
+                if script.runs_on(event):
+                    script.run()
 
 
 def init(title="ScratKat"):

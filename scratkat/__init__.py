@@ -5,13 +5,14 @@ from .core import (
     Sound,
     init,
 )
-from .scripts import Script
+from .scripts import Script, when_run
 
 __all__ = [
     "Project",
     "Sprite",
     "Costume",
     "Script",
+    "when_run",
     "Sound",
     "init",
 ]
